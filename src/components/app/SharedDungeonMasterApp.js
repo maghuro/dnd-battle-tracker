@@ -21,6 +21,7 @@ export default function SharedDungeonMasterApp({
   state,
   setState,
   recovery,
+  onRecoveryResolved,
 }) {
   const [recoveryResolved, setRecoveryResolved] = useState(!recovery);
   const [createBattleMutation, { error: createError }] = useMutation(CREATE_BATTLE);
@@ -57,9 +58,14 @@ export default function SharedDungeonMasterApp({
     let cancelled = false;
     const dmSnapshot = recoveryData?.getDndbattletracker?.dmSnapshot;
 
+    const resolveRecovery = () => {
+      setRecoveryResolved(true);
+      onRecoveryResolved();
+    };
+
     if (recoveryError || !dmSnapshot) {
       setState((prevState) => updateErrors(prevState, recoveryErrorMessage));
-      setRecoveryResolved(true);
+      resolveRecovery();
       return undefined;
     }
 
@@ -67,23 +73,26 @@ export default function SharedDungeonMasterApp({
       .then((recoveredState) => {
         if (cancelled) return;
 
-        setState((prevState) => restoreDmRecovery(
-          prevState,
-          recoveredState,
-          recovery,
-          now(),
-        ));
-        setRecoveryResolved(true);
+        setState((prevState) => {
+          const restoredState = restoreDmRecovery(
+            prevState,
+            recoveredState,
+            recovery,
+            now(),
+          );
+          return shareBattle(restoredState);
+        });
         window.history.replaceState(
           null,
           '',
           `${window.location.pathname}${window.location.search}`,
         );
+        resolveRecovery();
       })
       .catch(() => {
         if (cancelled) return;
         setState((prevState) => updateErrors(prevState, recoveryErrorMessage));
-        setRecoveryResolved(true);
+        resolveRecovery();
       });
 
     return () => {

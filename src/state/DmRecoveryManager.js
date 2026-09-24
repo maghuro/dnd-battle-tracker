@@ -52,7 +52,9 @@ function getSnapshotState(state) {
     battleId,
     shareEnabled,
     sharedTimestamp,
+    dmRecoveryId,
     dmRecoveryKey,
+    dmRecoveryCreated,
     focusedCreature,
     ...persistentState
   } = state;
@@ -157,12 +159,12 @@ export async function decryptDmRecovery(snapshot, key, battleId) {
   return state;
 }
 
-export function buildDmRecoveryUrl(battleId, key, href = window.location.href) {
-  if (!battleId || !key) return undefined;
+export function buildDmRecoveryUrl(recoveryId, key, href = window.location.href) {
+  if (!recoveryId || !key) return undefined;
 
   const url = new URL(href);
   const recovery = new URLSearchParams();
-  recovery.set('dm', battleId);
+  recovery.set('dm', recoveryId);
   recovery.set('key', key);
 
   url.searchParams.delete('battle');
@@ -173,12 +175,12 @@ export function buildDmRecoveryUrl(battleId, key, href = window.location.href) {
 
 export function getDmRecoveryFromLocation(location = window.location) {
   const recovery = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const battleId = recovery.get('dm');
+  const recoveryId = recovery.get('dm');
   const key = recovery.get('key');
 
-  if (!battleId || !key) return undefined;
+  if (!recoveryId || !key) return undefined;
 
-  return { battleId, key };
+  return { recoveryId, key };
 }
 
 export function restoreDmRecovery(defaultState, recoveredState, recovery, timestamp) {
@@ -190,13 +192,15 @@ export function restoreDmRecovery(defaultState, recoveredState, recovery, timest
       ...creature,
       selected: false,
     })),
-    battleId: recovery.battleId,
-    battleCreated: true,
+    battleId: undefined,
+    battleCreated: false,
     shareEnabled: true,
-    sharedTimestamp: timestamp,
+    sharedTimestamp: null,
+    dmRecoveryId: recovery.recoveryId,
     dmRecoveryKey: recovery.key,
+    dmRecoveryCreated: true,
     errors: [],
     ariaAnnouncements: ['battle recovered'],
-    loaded: true,
+    loaded: false,
   };
 }

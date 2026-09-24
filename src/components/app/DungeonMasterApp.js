@@ -271,6 +271,7 @@ function DungeonMasterApp({
               <ExternalLink
                 url={dmRecoveryUrl}
                 title="Keep this link private"
+                ariaLabel="DM recovery link"
               >
                 DM recovery link
               </ExternalLink>

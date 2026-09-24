@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import {
   share,
+  shareRecovery,
   handleShareError,
   handleRecoveryError,
   waitForPendingShares,
@@ -273,6 +274,61 @@ describe('share', () => {
 
     expect(createBattleMock).toHaveBeenCalledWith(expectedPublicInput());
     expect(createRecoveryMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('shareRecovery', () => {
+  it('updates only the private recovery snapshot for an existing recovery record', async () => {
+    const state = {
+      ...defaultState,
+      battleCreated: true,
+      dmRecoveryId: 'dm-existing',
+      dmRecoveryKey: 'existing-private-key',
+      dmRecoveryCreated: true,
+    };
+
+    const newState = shareRecovery(
+      state,
+      createRecoveryMock,
+      updateRecoveryMock,
+    );
+
+    expect(newState).toEqual(state);
+
+    await waitForPendingShares();
+
+    expect(updateRecoveryMock).toHaveBeenCalledTimes(1);
+    expect(updateRecoveryMock).toHaveBeenCalledWith(
+      expectedRecoveryInput('dm-existing'),
+    );
+    expect(createRecoveryMock).not.toHaveBeenCalled();
+    expect(encryptDmRecovery).toHaveBeenCalledWith(
+      state,
+      'existing-private-key',
+      'dm-existing',
+    );
+  });
+
+  it('does nothing when sharing is disabled', async () => {
+    const state = {
+      ...defaultState,
+      shareEnabled: false,
+      dmRecoveryId: 'dm-existing',
+      dmRecoveryKey: 'existing-private-key',
+      dmRecoveryCreated: true,
+    };
+
+    expect(shareRecovery(
+      state,
+      createRecoveryMock,
+      updateRecoveryMock,
+    )).toBe(state);
+
+    await waitForPendingShares();
+
+    expect(createRecoveryMock).not.toHaveBeenCalled();
+    expect(updateRecoveryMock).not.toHaveBeenCalled();
+    expect(encryptDmRecovery).not.toHaveBeenCalled();
   });
 });
 

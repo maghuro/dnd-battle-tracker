@@ -123,9 +123,10 @@ export function share(
   };
 
   const publicMutation = state.battleCreated ? updateBattle : createBattle;
-  const recoveryMutation = dmRecoveryId
-    ? (state.dmRecoveryCreated ? updateRecovery : createRecovery)
-    : undefined;
+  let recoveryMutation;
+  if (dmRecoveryId) {
+    recoveryMutation = state.dmRecoveryCreated ? updateRecovery : createRecovery;
+  }
 
   queueShare(
     sharedState,

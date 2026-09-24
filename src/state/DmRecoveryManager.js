@@ -87,7 +87,7 @@ export function createDmRecoveryKey() {
   return bytesToBase64Url(keyBytes);
 }
 
-export async function encryptDmRecovery(state, key, battleId) {
+export async function encryptDmRecovery(state, key, recoveryId) {
   if (!isDmRecoverySupported()) throw new Error('DM recovery is not supported');
 
   const encoder = new TextEncoder();
@@ -106,7 +106,7 @@ export async function encryptDmRecovery(state, key, battleId) {
     {
       name: 'AES-GCM',
       iv,
-      additionalData: encoder.encode(battleId),
+      additionalData: encoder.encode(recoveryId),
     },
     cryptoKey,
     encoder.encode(JSON.stringify(getSnapshotState(state))),
@@ -119,7 +119,7 @@ export async function encryptDmRecovery(state, key, battleId) {
   ].join('.');
 }
 
-export async function decryptDmRecovery(snapshot, key, battleId) {
+export async function decryptDmRecovery(snapshot, key, recoveryId) {
   if (!isDmRecoverySupported()) throw new Error('DM recovery is not supported');
 
   const [version, encodedIv, encodedPayload, ...extra] = snapshot.split('.');
@@ -145,7 +145,7 @@ export async function decryptDmRecovery(snapshot, key, battleId) {
     {
       name: 'AES-GCM',
       iv: base64UrlToBytes(encodedIv),
-      additionalData: encoder.encode(battleId),
+      additionalData: encoder.encode(recoveryId),
     },
     cryptoKey,
     base64UrlToBytes(encodedPayload),

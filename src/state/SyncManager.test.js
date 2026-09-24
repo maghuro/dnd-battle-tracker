@@ -189,7 +189,7 @@ describe('share', () => {
     await waitForPendingShares();
 
     expect(createBattleMock).toHaveBeenCalledTimes(1);
-    expect(createBattleMock.mock.calls[0][0]).toEqual(expectedInput(undefined, undefined));
+    expect(createBattleMock.mock.calls[0][0]).toEqual(expectedInput(undefined, null));
   });
 });
 

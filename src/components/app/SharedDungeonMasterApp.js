@@ -41,7 +41,7 @@ export default function SharedDungeonMasterApp({
     refetch: refetchRecovery,
   } = useQuery(GET_DM_RECOVERY, {
     skip: !recovery || recoveryResolved,
-    variables: recovery ? { recoveryId: recovery.recoveryId } : undefined,
+    variables: recovery ? { battleId: recovery.recoveryId } : undefined,
     fetchPolicy: 'network-only',
   });
 

@@ -128,10 +128,11 @@ function DungeonMasterApp({
     ariaAnnouncements,
     battleId,
     focusedCreature,
+    dmRecoveryId,
     dmRecoveryKey,
   } = state;
   const dmRecoveryUrl = shareEnabled
-    ? buildDmRecoveryUrl(battleId, dmRecoveryKey)
+    ? buildDmRecoveryUrl(dmRecoveryId, dmRecoveryKey)
     : undefined;
   const selectedCreatureCount = creatures.filter(({ selected }) => selected).length;
 

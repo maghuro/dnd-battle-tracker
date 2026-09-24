@@ -7,6 +7,7 @@ import {
 } from '../../graphql/operations';
 import {
   share,
+  shareRecovery,
   handleShareError,
   handleRecoveryError,
 } from '../../state/SyncManager';
@@ -49,6 +50,12 @@ export default function SharedDungeonMasterApp({
     shareState,
     createBattleMutation,
     updateBattleMutation,
+    createRecoveryMutation,
+    updateRecoveryMutation,
+  );
+
+  const shareDmRecovery = (shareState) => shareRecovery(
+    shareState,
     createRecoveryMutation,
     updateRecoveryMutation,
   );
@@ -144,6 +151,7 @@ export default function SharedDungeonMasterApp({
       state={state}
       setState={setState}
       shareBattle={shareBattle}
+      shareRecovery={shareDmRecovery}
     />
   );
 }

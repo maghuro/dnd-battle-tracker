@@ -54,6 +54,29 @@ function recoveryBattleInput(recoveryId, dmSnapshot, timestamp) {
   };
 }
 
+async function persistRecovery(state, recoveryMutation, timestamp) {
+  if (!state.dmRecoveryKey || !state.dmRecoveryId || !recoveryMutation) return;
+
+  let dmSnapshot;
+  try {
+    dmSnapshot = await encryptDmRecovery(
+      state,
+      state.dmRecoveryKey,
+      state.dmRecoveryId,
+    );
+  } catch {
+    return;
+  }
+
+  try {
+    await recoveryMutation(
+      recoveryBattleInput(state.dmRecoveryId, dmSnapshot, timestamp),
+    );
+  } catch {
+    // Recovery errors are surfaced separately without disabling player sharing.
+  }
+}
+
 function queueShare(
   state,
   publicMutation,
@@ -68,28 +91,14 @@ function queueShare(
       // Public sharing errors are surfaced by the Apollo mutation state.
     }
 
-    if (!state.dmRecoveryKey || !state.dmRecoveryId || !recoveryMutation) return;
-
-    let dmSnapshot;
-    try {
-      dmSnapshot = await encryptDmRecovery(
-        state,
-        state.dmRecoveryKey,
-        state.dmRecoveryId,
-      );
-    } catch {
-      return;
-    }
-
-    try {
-      await recoveryMutation(
-        recoveryBattleInput(state.dmRecoveryId, dmSnapshot, timestamp),
-      );
-    } catch {
-      // Recovery errors are surfaced separately without disabling player sharing.
-    }
+    await persistRecovery(state, recoveryMutation, timestamp);
   };
 
+  shareQueue = shareQueue.then(run, run).catch(() => undefined);
+}
+
+function queueRecovery(state, recoveryMutation, timestamp) {
+  const run = () => persistRecovery(state, recoveryMutation, timestamp);
   shareQueue = shareQueue.then(run, run).catch(() => undefined);
 }
 
@@ -141,6 +150,34 @@ export function share(
     battleCreated: true,
     dmRecoveryCreated: Boolean(dmRecoveryId),
     ...(!state.battleCreated ? { sharedTimestamp: timestamp } : {}),
+  };
+}
+
+export function shareRecovery(state, createRecovery, updateRecovery) {
+  if (!state.shareEnabled) return state;
+
+  const timestamp = now();
+  const dmRecoveryKey = state.dmRecoveryKey || createDmRecoveryKey();
+  const dmRecoveryId = dmRecoveryKey
+    ? (state.dmRecoveryId || `dm-${nanoid(DM_RECOVERY_ID_SIZE)}`)
+    : undefined;
+
+  if (!dmRecoveryId) return state;
+
+  const recoveryState = {
+    ...state,
+    dmRecoveryId,
+    dmRecoveryKey,
+  };
+  const recoveryMutation = state.dmRecoveryCreated
+    ? updateRecovery
+    : createRecovery;
+
+  queueRecovery(recoveryState, recoveryMutation, timestamp);
+
+  return {
+    ...recoveryState,
+    dmRecoveryCreated: true,
   };
 }
 

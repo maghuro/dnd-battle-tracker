@@ -59,6 +59,7 @@ function loadState(defaultState, getState, auto) {
 
   const loadedBattle = {
     ...loadedState,
+    dmRecoveryKey: loadedState.dmRecoveryKey ?? defaultState.dmRecoveryKey,
     errors: [],
     ariaAnnouncements: ['battle loaded'],
     loaded: true,

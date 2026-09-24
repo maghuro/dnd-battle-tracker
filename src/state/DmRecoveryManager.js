@@ -183,7 +183,7 @@ export function getDmRecoveryFromLocation(location = window.location) {
   return { recoveryId, key };
 }
 
-export function restoreDmRecovery(defaultState, recoveredState, recovery, timestamp) {
+export function restoreDmRecovery(defaultState, recoveredState, recovery) {
   return {
     ...defaultState,
     ...recoveredState,

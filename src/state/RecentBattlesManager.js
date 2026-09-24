@@ -5,8 +5,9 @@ const historyKey = 'battle-history';
 export const recentBattleLimit = 3;
 
 function versionCompatibility(version, loadedVersion) {
+  if (typeof version !== 'string' || typeof loadedVersion !== 'string') return false;
   const majorVersion = version.split('.')[0];
-  const loadedMajorVersion = loadedVersion && loadedVersion.split('.')[0];
+  const loadedMajorVersion = loadedVersion.split('.')[0];
   return majorVersion === loadedMajorVersion;
 }
 
@@ -87,6 +88,8 @@ export function restoreRecentBattle(currentState, snapshot) {
     battleCreated,
     shareEnabled,
     sharedTimestamp,
+    autoSaveError,
+    loaded,
   } = currentState;
 
   return {
@@ -95,8 +98,9 @@ export function restoreRecentBattle(currentState, snapshot) {
     battleCreated,
     shareEnabled,
     sharedTimestamp,
+    autoSaveError,
+    loaded,
     errors: [],
     ariaAnnouncements: ['recent battle restored'],
-    loaded: true,
   };
 }

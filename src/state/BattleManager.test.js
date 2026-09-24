@@ -28,7 +28,9 @@ describe('newBattleState', () => {
       battleId: undefined,
       battleTrackerVersion: '1.0.0',
       sharedTimestamp: null,
+      dmRecoveryId: undefined,
       dmRecoveryKey: undefined,
+      dmRecoveryCreated: false,
     };
 
     expect(newBattleState()).toEqual(expected);
@@ -100,9 +102,18 @@ describe('resetBattle', () => {
     expect(resetBattle(state)).toMatchObject(expected);
   });
 
-  test('resets the battle state, keeping the DM recovery key', () => {
-    const state = { ...defaultState, dmRecoveryKey: 'private-key' };
-    const expected = { dmRecoveryKey: 'private-key' };
+  test('resets the battle state, keeping DM recovery data', () => {
+    const state = {
+      ...defaultState,
+      dmRecoveryId: 'dm-recovery-id',
+      dmRecoveryKey: 'private-key',
+      dmRecoveryCreated: true,
+    };
+    const expected = {
+      dmRecoveryId: 'dm-recovery-id',
+      dmRecoveryKey: 'private-key',
+      dmRecoveryCreated: true,
+    };
     expect(resetBattle(state)).toMatchObject(expected);
   });
 });

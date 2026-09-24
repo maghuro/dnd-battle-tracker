@@ -27,6 +27,18 @@ describe('save', () => {
     expect(fileContents).toEqual(expectedFileContents);
   });
 
+  it('does not include the DM recovery key in a manual save', () => {
+    save({
+      ...defaultState,
+      dmRecoveryKey: 'private-key',
+    });
+
+    const { calls } = FileSystem.save.mock;
+    const fileContents = JSON.parse(calls[0][2]);
+
+    expect(fileContents).not.toHaveProperty('dmRecoveryKey');
+  });
+
   it('saves the file in JSON format', () => {
     save(defaultState);
     const { calls } = FileSystem.save.mock;
@@ -222,6 +234,7 @@ describe('autoLoad', () => {
       battleCreated: false,
       shareEnabled: false,
       sharedTimestamp: null,
+      dmRecoveryKey: undefined,
     };
     const loadedFileContents = await autoLoad(initialState);
 
@@ -240,6 +253,7 @@ describe('autoLoad', () => {
       battleId: '123',
       battleCreated: true,
       shareEnabled: true,
+      dmRecoveryKey: 'private-key',
     };
     getLocalState.mockReturnValue(JSON.stringify(loadedSate));
 
@@ -258,6 +272,7 @@ describe('autoLoad', () => {
       battleCreated: false,
       shareEnabled: false,
       sharedTimestamp: null,
+      dmRecoveryKey: undefined,
       loaded: true,
       ariaAnnouncements: ['battle loaded'],
     };

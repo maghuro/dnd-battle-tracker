@@ -1,6 +1,12 @@
 import { nanoid } from 'nanoid';
 import { dismissErrors, updateErrors } from './ErrorManager';
 import now from '../util/date';
+import {
+  createDmRecoveryKey,
+  encryptDmRecovery,
+} from './DmRecoveryManager';
+
+let shareQueue = Promise.resolve();
 
 function getSharedCreatures(creatures) {
   return creatures.map((creature) => ({
@@ -15,6 +21,39 @@ function getSharedCreatures(creatures) {
   }));
 }
 
+function queueShare(state, mutation, input) {
+  const run = async () => {
+    let dmSnapshot;
+
+    if (state.dmRecoveryKey) {
+      try {
+        dmSnapshot = await encryptDmRecovery(
+          state,
+          state.dmRecoveryKey,
+          state.battleId,
+        );
+      } catch {
+        dmSnapshot = undefined;
+      }
+    }
+
+    await mutation({
+      variables: {
+        battleinput: {
+          ...input.variables.battleinput,
+          ...(dmSnapshot ? { dmSnapshot } : {}),
+        },
+      },
+    });
+  };
+
+  shareQueue = shareQueue.then(run, run).catch(() => undefined);
+}
+
+export function waitForPendingShares() {
+  return shareQueue;
+}
+
 export function share(state, createBattle, updateBattle) {
   if (!state.shareEnabled) {
     return state;
@@ -22,6 +61,13 @@ export function share(state, createBattle, updateBattle) {
 
   const battleId = state.battleId || nanoid(11);
   const timestamp = now();
+  const dmRecoveryKey = state.dmRecoveryKey || createDmRecoveryKey();
+
+  const sharedState = {
+    ...state,
+    battleId,
+    dmRecoveryKey,
+  };
 
   const input = {
     variables: {
@@ -38,16 +84,15 @@ export function share(state, createBattle, updateBattle) {
   const { battleCreated } = state;
 
   if (battleCreated) {
-    updateBattle(input);
-    return state;
+    queueShare(sharedState, updateBattle, input);
+    return sharedState;
   }
 
-  createBattle(input);
+  queueShare(sharedState, createBattle, input);
 
   return {
-    ...state,
+    ...sharedState,
     battleCreated: true,
-    battleId,
     sharedTimestamp: timestamp,
   };
 }

@@ -46,6 +46,12 @@ describe('Battle Share', () => {
     const dmApp = new DmApp();
     await dmApp.battleMenu.toggle();
     await dmApp.battleMenu.selectMenuItem('Share battle');
+    await screen.findByRole('link', { name: 'Player session random-battle-id (link copied)' });
+
+    await waitFor(() => {
+      const savedState = JSON.parse(window.localStorage.getItem('battle'));
+      expect(savedState.dmRecoveryKey).toBeDefined();
+    });
 
     const recoveryLink = await screen.findByRole('link', { name: 'DM recovery link' });
     const recoveryUrl = new URL(recoveryLink.href);

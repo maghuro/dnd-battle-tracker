@@ -31,13 +31,14 @@ const SharedDungeonMasterApp = lazy(async () => {
 export default function DungeonMasterAppWrapper({ recovery }) {
   const initialState = useMemo(() => autoLoad(newBattleState()), []);
   const [state, setState] = useState(initialState);
+  const [activeRecovery, setActiveRecovery] = useState(recovery);
 
   useAutoSave({
     state,
     setState,
   });
 
-  const online = state.shareEnabled || Boolean(recovery);
+  const online = state.shareEnabled || Boolean(activeRecovery);
 
   if (online) {
     return (
@@ -49,7 +50,8 @@ export default function DungeonMasterAppWrapper({ recovery }) {
           shareBattle={(sharedState) => sharedState}
           state={state}
           setState={setState}
-          recovery={recovery}
+          recovery={activeRecovery}
+          onRecoveryResolved={() => setActiveRecovery(undefined)}
         />
       </Suspense>
     );

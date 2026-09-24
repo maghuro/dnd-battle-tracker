@@ -40,8 +40,8 @@ query GET_BATTLE($battleId: String!) {
 `;
 
 export const GET_DM_RECOVERY = gql`
-query GET_DM_RECOVERY($battleId: String!) {
-  getDndbattletracker(battleId: $battleId) {
+query GET_DM_RECOVERY($recoveryId: String!) {
+  getDndbattletracker(battleId: $recoveryId) {
     battleId
     dmSnapshot
   }

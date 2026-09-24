@@ -16,7 +16,9 @@ describe('DM recovery encryption', () => {
       battleCreated: true,
       battleId: 'public-battle',
       sharedTimestamp: 123,
+      dmRecoveryId: 'dm-recovery-1',
       dmRecoveryKey: key,
+      dmRecoveryCreated: true,
       focusedCreature: 2,
       errors: ['an error'],
       ariaAnnouncements: ['announcement'],
@@ -26,8 +28,8 @@ describe('DM recovery encryption', () => {
       })),
     };
 
-    const encrypted = await encryptDmRecovery(state, key, state.battleId);
-    const recovered = await decryptDmRecovery(encrypted, key, state.battleId);
+    const encrypted = await encryptDmRecovery(state, key, state.dmRecoveryId);
+    const recovered = await decryptDmRecovery(encrypted, key, state.dmRecoveryId);
 
     expect(encrypted).not.toContain('Goblin #1');
     expect(recovered.creatures[1].armorClass).toBe(15);
@@ -37,7 +39,9 @@ describe('DM recovery encryption', () => {
     expect(recovered.battleCreated).toBeUndefined();
     expect(recovered.shareEnabled).toBeUndefined();
     expect(recovered.sharedTimestamp).toBeUndefined();
+    expect(recovered.dmRecoveryId).toBeUndefined();
     expect(recovered.dmRecoveryKey).toBeUndefined();
+    expect(recovered.dmRecoveryCreated).toBeUndefined();
     expect(recovered.focusedCreature).toBeUndefined();
     expect(recovered.errors).toBeUndefined();
     expect(recovered.ariaAnnouncements).toBeUndefined();
@@ -46,19 +50,19 @@ describe('DM recovery encryption', () => {
   it('cannot decrypt a snapshot with a different recovery key', async () => {
     const key = createDmRecoveryKey();
     const otherKey = createDmRecoveryKey();
-    const encrypted = await encryptDmRecovery(defaultState, key, 'battle-1');
+    const encrypted = await encryptDmRecovery(defaultState, key, 'dm-recovery-1');
 
     await expect(
-      decryptDmRecovery(encrypted, otherKey, 'battle-1'),
+      decryptDmRecovery(encrypted, otherKey, 'dm-recovery-1'),
     ).rejects.toBeDefined();
   });
 
-  it('binds the encrypted snapshot to the public battle id', async () => {
+  it('binds the encrypted snapshot to the private recovery id', async () => {
     const key = createDmRecoveryKey();
-    const encrypted = await encryptDmRecovery(defaultState, key, 'battle-1');
+    const encrypted = await encryptDmRecovery(defaultState, key, 'dm-recovery-1');
 
     await expect(
-      decryptDmRecovery(encrypted, key, 'battle-2'),
+      decryptDmRecovery(encrypted, key, 'dm-recovery-2'),
     ).rejects.toBeDefined();
   });
 
@@ -68,10 +72,10 @@ describe('DM recovery encryption', () => {
       ...defaultState,
       battleTrackerVersion: '999.0.0',
     };
-    const encrypted = await encryptDmRecovery(incompatibleState, key, 'battle-1');
+    const encrypted = await encryptDmRecovery(incompatibleState, key, 'dm-recovery-1');
 
     await expect(
-      decryptDmRecovery(encrypted, key, 'battle-1'),
+      decryptDmRecovery(encrypted, key, 'dm-recovery-1'),
     ).rejects.toThrow('Invalid or incompatible DM recovery snapshot');
   });
 });
@@ -79,7 +83,7 @@ describe('DM recovery encryption', () => {
 describe('DM recovery links', () => {
   it('keeps the recovery key in the URL fragment and removes player battle params', () => {
     const url = buildDmRecoveryUrl(
-      'battle-1',
+      'dm-recovery-1',
       'private-key',
       'https://example.com/?feature=true&battle=player-id#old',
     );
@@ -93,7 +97,7 @@ describe('DM recovery links', () => {
     });
 
     expect(recovery).toEqual({
-      battleId: 'battle-1',
+      recoveryId: 'dm-recovery-1',
       key: 'private-key',
     });
   });
@@ -126,17 +130,20 @@ describe('restoreDmRecovery', () => {
       },
       recoveredState,
       {
-        battleId: 'battle-1',
+        recoveryId: 'dm-recovery-1',
         key: 'private-key',
       },
       123456,
     );
 
-    expect(restored.battleId).toBe('battle-1');
-    expect(restored.battleCreated).toBe(true);
+    expect(restored.battleId).toBeUndefined();
+    expect(restored.battleCreated).toBe(false);
     expect(restored.shareEnabled).toBe(true);
-    expect(restored.sharedTimestamp).toBe(123456);
+    expect(restored.sharedTimestamp).toBeNull();
+    expect(restored.dmRecoveryId).toBe('dm-recovery-1');
     expect(restored.dmRecoveryKey).toBe('private-key');
+    expect(restored.dmRecoveryCreated).toBe(true);
+    expect(restored.loaded).toBe(false);
     expect(restored.errors).toEqual([]);
     expect(restored.ariaAnnouncements).toEqual(['battle recovered']);
     expect(restored.focusedCreature).toBeUndefined();

@@ -51,7 +51,6 @@ describe('DM recovery', () => {
 
     const recoveryLink = await screen.findByRole('link', { name: 'DM recovery link' });
     expect(recoveryLink).toBeVisible();
-
   });
 
   test('can leave online mode after recovering a battle', async () => {

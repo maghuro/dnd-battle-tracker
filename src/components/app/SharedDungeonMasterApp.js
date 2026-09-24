@@ -5,7 +5,11 @@ import {
   GET_DM_RECOVERY,
   UPDATE_BATTLE,
 } from '../../graphql/operations';
-import { share, handleShareError } from '../../state/SyncManager';
+import {
+  share,
+  handleShareError,
+  handleRecoveryError,
+} from '../../state/SyncManager';
 import {
   decryptDmRecovery,
   restoreDmRecovery,
@@ -29,6 +33,8 @@ export default function SharedDungeonMasterApp({
   const [recoveryRetries, setRecoveryRetries] = useState(0);
   const [createBattleMutation, { error: createError }] = useMutation(CREATE_BATTLE);
   const [updateBattleMutation, { error: updateError }] = useMutation(UPDATE_BATTLE);
+  const [createRecoveryMutation, { error: createRecoveryError }] = useMutation(CREATE_BATTLE);
+  const [updateRecoveryMutation, { error: updateRecoveryError }] = useMutation(UPDATE_BATTLE);
   const {
     loading: recoveryLoading,
     data: recoveryData,
@@ -36,7 +42,7 @@ export default function SharedDungeonMasterApp({
     refetch: refetchRecovery,
   } = useQuery(GET_DM_RECOVERY, {
     skip: !recovery || recoveryResolved,
-    variables: recovery ? { battleId: recovery.battleId } : undefined,
+    variables: recovery ? { battleId: recovery.recoveryId } : undefined,
     fetchPolicy: 'network-only',
   });
 
@@ -44,6 +50,8 @@ export default function SharedDungeonMasterApp({
     shareState,
     createBattleMutation,
     updateBattleMutation,
+    createRecoveryMutation,
+    updateRecoveryMutation,
   );
 
   useEffect(() => {
@@ -55,6 +63,15 @@ export default function SharedDungeonMasterApp({
   useEffect(() => {
     setState((prevState) => handleShareError(prevState, createError, updateError));
   }, [createError, updateError]);
+
+  useEffect(() => {
+    if (!createRecoveryError && !updateRecoveryError) return;
+    setState((prevState) => handleRecoveryError(
+      prevState,
+      createRecoveryError,
+      updateRecoveryError,
+    ));
+  }, [createRecoveryError, updateRecoveryError]);
 
   useEffect(() => {
     if (!recovery || recoveryResolved || recoveryLoading) return undefined;
@@ -82,7 +99,7 @@ export default function SharedDungeonMasterApp({
       return undefined;
     }
 
-    decryptDmRecovery(dmSnapshot, recovery.key, recovery.battleId)
+    decryptDmRecovery(dmSnapshot, recovery.key, recovery.recoveryId)
       .then((recoveredState) => {
         if (cancelled) return;
 

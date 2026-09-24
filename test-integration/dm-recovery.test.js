@@ -51,6 +51,40 @@ describe('DM recovery', () => {
 
     const recoveryLink = await screen.findByRole('link', { name: 'DM recovery link' });
     expect(recoveryLink).toBeVisible();
+
+  });
+
+  test('can leave online mode after recovering a battle', async () => {
+    const battleId = 'recovery-battle-id';
+    const key = createDmRecoveryKey();
+    const dmSnapshot = await encryptDmRecovery({
+      ...defaultState,
+      battleId,
+      battleCreated: true,
+      shareEnabled: true,
+      dmRecoveryKey: key,
+    }, key, battleId);
+
+    msw.use(
+      graphql.query('GET_DM_RECOVERY', () => HttpResponse.json({
+        data: {
+          getDndbattletracker: {
+            battleId,
+            dmSnapshot,
+          },
+        },
+      })),
+    );
+
+    const dmApp = new DmApp({ battleId, key });
+    await screen.findByRole('link', { name: 'DM recovery link' });
+
+    await dmApp.battleMenu.toggle();
+    await dmApp.battleMenu.selectMenuItem('Unshare battle');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: 'DM recovery link' })).toBeNull();
+    });
   });
 
   test('keeps the local battle and shows an error for an expired recovery link', async () => {

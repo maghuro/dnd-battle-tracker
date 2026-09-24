@@ -10,26 +10,30 @@ import {
 } from '../src/state/DmRecoveryManager';
 
 describe('DM recovery', () => {
-  test('recovers the complete private DM state from another browser session', async () => {
-    const battleId = 'recovery-battle-id';
+  test('recovers private state and creates a fresh player session', async () => {
+    const recoveryId = 'dm-recovery-battle-id';
+    const oldPlayerBattleId = 'expired-player-battle-id';
     const key = createDmRecoveryKey();
     expect(key).toBeDefined();
+
     const state = {
       ...defaultState,
-      battleId,
+      battleId: oldPlayerBattleId,
       battleCreated: true,
       shareEnabled: true,
+      dmRecoveryId: recoveryId,
       dmRecoveryKey: key,
+      dmRecoveryCreated: true,
     };
-    const dmSnapshot = await encryptDmRecovery(state, key, battleId);
+    const dmSnapshot = await encryptDmRecovery(state, key, recoveryId);
 
     msw.use(
       graphql.query('GET_DM_RECOVERY', ({ variables }) => {
-        expect(variables.battleId).toBe(battleId);
+        expect(variables.battleId).toBe(recoveryId);
         return HttpResponse.json({
           data: {
             getDndbattletracker: {
-              battleId,
+              battleId: recoveryId,
               dmSnapshot,
             },
           },
@@ -37,12 +41,15 @@ describe('DM recovery', () => {
       }),
     );
 
-    new DmApp({ battleId, key });
+    new DmApp({ recoveryId, key });
 
     await waitFor(() => {
       const savedState = JSON.parse(window.localStorage.getItem('battle'));
-      expect(savedState.battleId).toBe(battleId);
+      expect(savedState.battleId).toBe('random-battle-id');
+      expect(savedState.battleId).not.toBe(oldPlayerBattleId);
+      expect(savedState.dmRecoveryId).toBe(recoveryId);
       expect(savedState.dmRecoveryKey).toBe(key);
+      expect(savedState.dmRecoveryCreated).toBe(true);
       expect(savedState.shareEnabled).toBe(true);
       expect(savedState.battleCreated).toBe(true);
       expect(savedState.creatures[1].armorClass).toBe(15);
@@ -50,34 +57,46 @@ describe('DM recovery', () => {
       expect(savedState.creatures[1].initiativeRoll).toEqual({ result: 12 });
     });
 
+    const playerLink = await screen.findByRole('link', {
+      name: 'Player session random-battle-id (link copied)',
+    });
+    expect(playerLink).toHaveAttribute('href', 'http://localhost/?battle=random-battle-id');
+
     const recoveryLink = await screen.findByRole('link', { name: 'DM recovery link' });
+    const recoveryUrl = new URL(recoveryLink.href);
+    const recovery = new URLSearchParams(recoveryUrl.hash.replace(/^#/, ''));
+
     expect(recoveryLink).toBeVisible();
+    expect(recovery.get('dm')).toBe(recoveryId);
+    expect(recovery.get('key')).toBe(key);
   });
 
   test('can leave online mode after recovering a battle', async () => {
-    const battleId = 'recovery-battle-id';
+    const recoveryId = 'dm-recovery-battle-id';
     const key = createDmRecoveryKey();
     expect(key).toBeDefined();
     const dmSnapshot = await encryptDmRecovery({
       ...defaultState,
-      battleId,
+      battleId: 'old-player-battle',
       battleCreated: true,
       shareEnabled: true,
+      dmRecoveryId: recoveryId,
       dmRecoveryKey: key,
-    }, key, battleId);
+      dmRecoveryCreated: true,
+    }, key, recoveryId);
 
     msw.use(
       graphql.query('GET_DM_RECOVERY', () => HttpResponse.json({
         data: {
           getDndbattletracker: {
-            battleId,
+            battleId: recoveryId,
             dmSnapshot,
           },
         },
       })),
     );
 
-    const dmApp = new DmApp({ battleId, key });
+    const dmApp = new DmApp({ recoveryId, key });
     await screen.findByRole('link', { name: 'DM recovery link' });
 
     await dmApp.battleMenu.toggle();
@@ -105,7 +124,7 @@ describe('DM recovery', () => {
     );
 
     new DmApp({
-      battleId: 'expired-battle',
+      recoveryId: 'dm-expired-recovery',
       key: createDmRecoveryKey(),
     });
 

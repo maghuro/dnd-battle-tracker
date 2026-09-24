@@ -99,6 +99,19 @@ describe('recent battles', () => {
     expect(getRecentBattles()).toEqual([]);
   });
 
+  it('ignores snapshots with an invalid version value', () => {
+    const invalid = {
+      savedAt: 1000,
+      state: {
+        ...battleWithCreature('Goblin'),
+        battleTrackerVersion: 5,
+      },
+    };
+    window.localStorage.setItem('battle-history', JSON.stringify([invalid]));
+
+    expect(getRecentBattles()).toEqual([]);
+  });
+
   it('ignores battles from a different major version', () => {
     const incompatible = {
       savedAt: 1000,
@@ -112,7 +125,7 @@ describe('recent battles', () => {
     expect(getRecentBattles()).toEqual([]);
   });
 
-  it('restores battle content while preserving the current sharing session', () => {
+  it('restores battle content while preserving the current runtime and sharing session', () => {
     archiveRecentBattle(battleWithCreature('Goblin'));
     const [snapshot] = getRecentBattles();
 
@@ -122,6 +135,8 @@ describe('recent battles', () => {
       battleCreated: true,
       shareEnabled: true,
       sharedTimestamp: 999,
+      autoSaveError: true,
+      loaded: false,
     };
 
     const restored = restoreRecentBattle(currentState, snapshot);
@@ -131,8 +146,9 @@ describe('recent battles', () => {
     expect(restored.battleCreated).toBe(true);
     expect(restored.shareEnabled).toBe(true);
     expect(restored.sharedTimestamp).toBe(999);
+    expect(restored.autoSaveError).toBe(true);
+    expect(restored.loaded).toBe(false);
     expect(restored.errors).toEqual([]);
     expect(restored.ariaAnnouncements).toEqual(['recent battle restored']);
-    expect(restored.loaded).toBe(true);
   });
 });

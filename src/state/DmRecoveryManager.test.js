@@ -133,7 +133,6 @@ describe('restoreDmRecovery', () => {
         recoveryId: 'dm-recovery-1',
         key: 'private-key',
       },
-      123456,
     );
 
     expect(restored.battleId).toBeUndefined();

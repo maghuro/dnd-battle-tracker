@@ -71,6 +71,7 @@ function loadState(defaultState, getState, auto) {
       battleId: defaultState.battleId,
       shareEnabled: defaultState.shareEnabled,
       sharedTimestamp: defaultState.sharedTimestamp,
+      dmRecoveryKey: defaultState.dmRecoveryKey,
     };
   }
 
@@ -88,7 +89,10 @@ export function autoLoad(defaultState) {
 
 export function save(state) {
   const {
-    ariaAnnouncements, errors, ...stateToSave
+    ariaAnnouncements,
+    errors,
+    dmRecoveryKey,
+    ...stateToSave
   } = state;
   const date = new Date(now());
   const dateSuffix = `${date.getDate()}_${date.getMonth()}_${date.getFullYear()}`;

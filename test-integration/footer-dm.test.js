@@ -159,6 +159,7 @@ describe('Info', () => {
       'https://github.com/Paul-Ladyman/dnd-battle-tracker/releases/latest',
     );
   });
+
   test('displays only version details if build time is not set', async () => {
     render(<DungeonMasterAppWrapper />);
     const user = userEvent.setup();

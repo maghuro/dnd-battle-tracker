@@ -109,6 +109,23 @@ describe('load', () => {
     expect(loadedFileContents).toEqual(expectedFileContents);
   });
 
+  it('keeps the current DM recovery key when a manual file does not contain it', async () => {
+    const {
+      ariaAnnouncements,
+      ...fileContents
+    } = defaultState;
+    FileSystem.load.mockResolvedValue(JSON.stringify(fileContents));
+
+    const state = {
+      ...defaultState,
+      dmRecoveryKey: 'private-key',
+    };
+
+    const loadedFileContents = await load(state, file);
+
+    expect(loadedFileContents.dmRecoveryKey).toBe('private-key');
+  });
+
   it('resets errors on load', async () => {
     const state = {
       ...defaultState,

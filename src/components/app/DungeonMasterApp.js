@@ -83,7 +83,7 @@ const DungeonMasterTips = lazy(async () => {
 });
 
 function DungeonMasterApp({
-  state, setState, shareBattle, onlineError,
+  state, setState, shareBattle, shareRecovery, onlineError,
 }) {
   const [spellList, setSpellList] = useState([]);
   const [rulesSearchOpened, setRulesSearchOpened] = useState(false);
@@ -93,10 +93,11 @@ function DungeonMasterApp({
     setRulesSearchOpened((prev) => !prev);
   };
 
-  const updateBattle = (update, doShare = true) => (...args) => {
+  const updateBattle = (update, doShare = true, doRecovery = false) => (...args) => {
     setState((prevState) => {
       const newState = update(prevState, ...args);
       if (doShare) return shareBattle(newState);
+      if (doRecovery) return shareRecovery(newState);
       return newState;
     });
   };
@@ -159,16 +160,16 @@ function DungeonMasterApp({
     damageCreature: updateBattle(damageCreature),
     healCreature: updateBattle(healCreature),
     addHitPointsToCreature: updateBattle(addHitPointsToCreature),
-    addTemporaryHealthToCreature: updateBattle(addTemporaryHealthToCreature),
-    addArmorClassToCreature: updateBattle(addArmorClassToCreature),
+    addTemporaryHealthToCreature: updateBattle(addTemporaryHealthToCreature, false, true),
+    addArmorClassToCreature: updateBattle(addArmorClassToCreature, false, true),
     addInitiativeToCreature: updateBattle(addInitiativeToCreature),
     addTieBreakerToCreature: updateBattle(addTieBreakerToCreature),
     removeCreature: updateBattle(removeCreature),
     addNoteToCreature: updateBattle(addNoteToCreature),
     updateNoteForCreature: updateBattle(updateNoteForCreature),
     removeNoteFromCreature: updateBattle(removeNoteFromCreature),
-    lockCreature: updateBattle(lockCreature),
-    unlockCreature: updateBattle(unlockCreature),
+    lockCreature: updateBattle(lockCreature, false, true),
+    unlockCreature: updateBattle(unlockCreature, false, true),
     shareCreature: updateBattle(shareCreature),
     unshareCreature: updateBattle(unshareCreature),
     shareCreatureHitPoints: updateBattle(shareCreatureHitPoints),

@@ -16,6 +16,8 @@ import DungeonMasterApp from './DungeonMasterApp';
 import Loading from './Loading';
 
 const recoveryErrorMessage = 'Could not recover the DM battle. The recovery link may be invalid or expired.';
+const recoveryRetryDelay = 200;
+const maxRecoveryRetries = 2;
 
 export default function SharedDungeonMasterApp({
   state,
@@ -24,12 +26,14 @@ export default function SharedDungeonMasterApp({
   onRecoveryResolved,
 }) {
   const [recoveryResolved, setRecoveryResolved] = useState(!recovery);
+  const [recoveryRetries, setRecoveryRetries] = useState(0);
   const [createBattleMutation, { error: createError }] = useMutation(CREATE_BATTLE);
   const [updateBattleMutation, { error: updateError }] = useMutation(UPDATE_BATTLE);
   const {
     loading: recoveryLoading,
     data: recoveryData,
     error: recoveryError,
+    refetch: refetchRecovery,
   } = useQuery(GET_DM_RECOVERY, {
     skip: !recovery || recoveryResolved,
     variables: recovery ? { battleId: recovery.battleId } : undefined,
@@ -62,6 +66,15 @@ export default function SharedDungeonMasterApp({
       setRecoveryResolved(true);
       onRecoveryResolved();
     };
+
+    if (!dmSnapshot && recoveryRetries < maxRecoveryRetries) {
+      const retry = setTimeout(() => {
+        setRecoveryRetries((previousRetries) => previousRetries + 1);
+        refetchRecovery().catch(() => undefined);
+      }, recoveryRetryDelay);
+
+      return () => clearTimeout(retry);
+    }
 
     if (recoveryError || !dmSnapshot) {
       setState((prevState) => updateErrors(prevState, recoveryErrorMessage));
@@ -104,6 +117,7 @@ export default function SharedDungeonMasterApp({
     recoveryLoading,
     recoveryData,
     recoveryError,
+    recoveryRetries,
   ]);
 
   if (recovery && !recoveryResolved) {

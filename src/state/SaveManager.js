@@ -59,7 +59,9 @@ function loadState(defaultState, getState, auto) {
 
   const loadedBattle = {
     ...loadedState,
+    dmRecoveryId: loadedState.dmRecoveryId ?? defaultState.dmRecoveryId,
     dmRecoveryKey: loadedState.dmRecoveryKey ?? defaultState.dmRecoveryKey,
+    dmRecoveryCreated: loadedState.dmRecoveryCreated ?? defaultState.dmRecoveryCreated,
     errors: [],
     ariaAnnouncements: ['battle loaded'],
     loaded: true,
@@ -72,7 +74,6 @@ function loadState(defaultState, getState, auto) {
       battleId: defaultState.battleId,
       shareEnabled: defaultState.shareEnabled,
       sharedTimestamp: defaultState.sharedTimestamp,
-      dmRecoveryKey: defaultState.dmRecoveryKey,
     };
   }
 
@@ -92,7 +93,9 @@ export function save(state) {
   const {
     ariaAnnouncements,
     errors,
+    dmRecoveryId,
     dmRecoveryKey,
+    dmRecoveryCreated,
     ...stateToSave
   } = state;
   const date = new Date(now());

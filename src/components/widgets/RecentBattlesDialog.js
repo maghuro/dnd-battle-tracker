@@ -21,29 +21,40 @@ export default function RecentBattlesDialog({
     if (show) dialogRef.current?.querySelector('button')?.focus();
   }, [show]);
 
+  useEffect(() => {
+    if (!show) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const buttons = Array.from(
+        dialogRef.current?.querySelectorAll('button') || [],
+      );
+      const firstButton = buttons[0];
+      const lastButton = buttons[buttons.length - 1];
+
+      if (!firstButton || !lastButton) return;
+
+      if (event.shiftKey && event.target === firstButton) {
+        event.preventDefault();
+        lastButton.focus();
+      } else if (!event.shiftKey && event.target === lastButton) {
+        event.preventDefault();
+        firstButton.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [show, onClose]);
+
   if (!show) return null;
-
-  const onKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-
-    const buttons = Array.from(dialogRef.current.querySelectorAll('button'));
-    const firstButton = buttons[0];
-    const lastButton = buttons[buttons.length - 1];
-
-    if (event.shiftKey && event.target === firstButton) {
-      event.preventDefault();
-      lastButton.focus();
-    } else if (!event.shiftKey && event.target === lastButton) {
-      event.preventDefault();
-      firstButton.focus();
-    }
-  };
 
   return (
     <>
@@ -55,32 +66,32 @@ export default function RecentBattlesDialog({
         aria-labelledby="recent-battles-title"
         aria-describedby="recent-battles-description"
         ref={dialogRef}
-        onKeyDown={onKeyDown}
       >
         <h2 id="recent-battles-title" className="alert-dialog--header">Recent battles</h2>
         <p id="recent-battles-description">
           Stored only in this browser. Restoring a battle keeps the current player sharing session.
         </p>
         <ul className="recent-battles">
-          {battles.map((snapshot, index) => {
+          {battles.map((snapshot) => {
             const { savedAt, state } = snapshot;
             const creatures = state.creatures || [];
             const count = creatures.length;
             const countLabel = `${count} ${count === 1 ? 'creature' : 'creatures'}`;
             const description = creatureDescription(creatures);
+            const creatureLabel = `${countLabel}: ${description}`;
 
             return (
-              <li className="recent-battles--item" key={`${savedAt}-${index}`}>
+              <li className="recent-battles--item" key={savedAt}>
                 <div className="recent-battles--details">
                   <strong>{new Date(savedAt).toLocaleString()}</strong>
                   <span className="recent-battles--creatures">
-                    {countLabel}: {description}
+                    {creatureLabel}
                   </span>
                 </div>
                 <button
                   type="button"
                   className="recent-battles--restore"
-                  aria-label={`Restore battle with ${countLabel}: ${description}`}
+                  aria-label={`Restore battle with ${creatureLabel}`}
                   onClick={() => onRestore(snapshot)}
                 >
                   Restore

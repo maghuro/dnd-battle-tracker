@@ -15,6 +15,7 @@ export function newBattleState() {
     shareEnabled: false,
     battleTrackerVersion: packageJson.version,
     sharedTimestamp: null,
+    dmRecoveryKey: undefined,
   };
 }
 
@@ -26,6 +27,7 @@ export function resetBattle(state) {
     shareEnabled,
     battleCreated,
     sharedTimestamp,
+    dmRecoveryKey,
   } = state;
   const lockedCreatures = creatures.filter((creature) => creature.locked);
   const creatureIdCount = lockedCreatures.length;
@@ -37,6 +39,7 @@ export function resetBattle(state) {
     shareEnabled,
     battleId,
     sharedTimestamp,
+    dmRecoveryKey,
     creatureIdCount,
     creatures: resetLockedCreatures,
     ariaAnnouncements,

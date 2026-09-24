@@ -10,6 +10,7 @@ import isHotkey from 'is-hotkey';
 import '../App.css';
 import BattleToolbar from '../page/BattleToolbar';
 import Title from '../page/Title';
+import ExternalLink from '../page/ExternalLink';
 import AriaAnnouncements from '../page/AriaAnnouncements';
 import RulesSearchBar from '../page/RulesSearchBar';
 import {
@@ -66,6 +67,7 @@ import {
   updateErrors,
 } from '../../state/ErrorManager';
 import { getSpellList } from '../../domain/spellcasting';
+import { buildDmRecoveryUrl } from '../../state/DmRecoveryManager';
 import SrdContext from './SrdContext';
 import Loading from './Loading';
 import ViewSwitcher from '../view/ViewSwitcher';
@@ -126,7 +128,11 @@ function DungeonMasterApp({
     ariaAnnouncements,
     battleId,
     focusedCreature,
+    dmRecoveryKey,
   } = state;
+  const dmRecoveryUrl = shareEnabled
+    ? buildDmRecoveryUrl(battleId, dmRecoveryKey)
+    : undefined;
   const selectedCreatureCount = creatures.filter(({ selected }) => selected).length;
 
   useEffect(() => {
@@ -151,16 +157,16 @@ function DungeonMasterApp({
     damageCreature: updateBattle(damageCreature),
     healCreature: updateBattle(healCreature),
     addHitPointsToCreature: updateBattle(addHitPointsToCreature),
-    addTemporaryHealthToCreature: updateBattle(addTemporaryHealthToCreature, false),
-    addArmorClassToCreature: updateBattle(addArmorClassToCreature, false),
+    addTemporaryHealthToCreature: updateBattle(addTemporaryHealthToCreature),
+    addArmorClassToCreature: updateBattle(addArmorClassToCreature),
     addInitiativeToCreature: updateBattle(addInitiativeToCreature),
     addTieBreakerToCreature: updateBattle(addTieBreakerToCreature),
     removeCreature: updateBattle(removeCreature),
     addNoteToCreature: updateBattle(addNoteToCreature),
     updateNoteForCreature: updateBattle(updateNoteForCreature),
     removeNoteFromCreature: updateBattle(removeNoteFromCreature),
-    lockCreature: updateBattle(lockCreature, false),
-    unlockCreature: updateBattle(unlockCreature, false),
+    lockCreature: updateBattle(lockCreature),
+    unlockCreature: updateBattle(unlockCreature),
     shareCreature: updateBattle(shareCreature),
     unshareCreature: updateBattle(unshareCreature),
     shareCreatureHitPoints: updateBattle(shareCreatureHitPoints),
@@ -260,6 +266,17 @@ function DungeonMasterApp({
             shareEnabled={shareEnabled}
             battleId={battleId}
           />
+          {dmRecoveryUrl && (
+            <p className="sub-title">
+              <ExternalLink
+                url={dmRecoveryUrl}
+                title="Keep this link private"
+              >
+                DM recovery link
+              </ExternalLink>
+              {' (keep private)'}
+            </p>
+          )}
           <ViewSwitcher views={views} />
         </div>
       </BattleManagerContext.Provider>

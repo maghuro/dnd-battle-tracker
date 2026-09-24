@@ -15,7 +15,6 @@ import {
   restoreDmRecovery,
 } from '../../state/DmRecoveryManager';
 import { updateErrors } from '../../state/ErrorManager';
-import now from '../../util/date';
 import DungeonMasterApp from './DungeonMasterApp';
 import Loading from './Loading';
 
@@ -42,7 +41,7 @@ export default function SharedDungeonMasterApp({
     refetch: refetchRecovery,
   } = useQuery(GET_DM_RECOVERY, {
     skip: !recovery || recoveryResolved,
-    variables: recovery ? { battleId: recovery.recoveryId } : undefined,
+    variables: recovery ? { recoveryId: recovery.recoveryId } : undefined,
     fetchPolicy: 'network-only',
   });
 
@@ -108,7 +107,6 @@ export default function SharedDungeonMasterApp({
             prevState,
             recoveredState,
             recovery,
-            now(),
           );
           return shareBattle(restoredState);
         });

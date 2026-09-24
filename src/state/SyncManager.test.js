@@ -1,12 +1,21 @@
 import { nanoid } from 'nanoid';
-import { share, handleShareError } from './SyncManager';
+import {
+  share,
+  handleShareError,
+  waitForPendingShares,
+} from './SyncManager';
 import { dismissErrors, updateErrors } from './ErrorManager';
+import {
+  createDmRecoveryKey,
+  encryptDmRecovery,
+} from './DmRecoveryManager';
 import defaultState from '../../test/fixtures/battle';
 import now from '../util/date';
 
 jest.mock('nanoid');
 jest.mock('../util/date');
 jest.mock('./ErrorManager');
+jest.mock('./DmRecoveryManager');
 
 const createBattleMock = jest.fn();
 const updateBattleMock = jest.fn();
@@ -14,7 +23,10 @@ const updateBattleMock = jest.fn();
 const timestamp = 1605815493000;
 now.mockReturnValue(timestamp);
 
-const expectedInput = (battleId) => ({
+const expectedInput = (
+  battleId,
+  dmSnapshot = 'encrypted-snapshot',
+) => ({
   variables: {
     battleinput: {
       battleId: battleId || defaultState.battleId,
@@ -52,53 +64,83 @@ const expectedInput = (battleId) => ({
         },
       ],
       activeCreature: defaultState.activeCreature,
+      ...(dmSnapshot ? { dmSnapshot } : {}),
       expdate: 1605901893,
     },
   },
 });
 
-beforeEach(() => {
+beforeEach(async () => {
+  await waitForPendingShares();
   createBattleMock.mockReset();
   updateBattleMock.mockReset();
   nanoid.mockReset();
   updateErrors.mockReset();
   dismissErrors.mockReset();
+  createDmRecoveryKey.mockReset();
+  encryptDmRecovery.mockReset();
+
+  createBattleMock.mockResolvedValue();
+  updateBattleMock.mockResolvedValue();
+  createDmRecoveryKey.mockReturnValue('private-key');
+  encryptDmRecovery.mockResolvedValue('encrypted-snapshot');
 });
 
 describe('share', () => {
-  it('creates a new battle with a 24 hour TTL', () => {
+  it('creates a new battle with a 24 hour TTL and encrypted DM snapshot', async () => {
     const newState = share(defaultState, createBattleMock, updateBattleMock);
 
     expect(newState).toEqual({
       ...defaultState,
       battleCreated: true,
+      dmRecoveryKey: 'private-key',
       sharedTimestamp: timestamp,
     });
+
+    await waitForPendingShares();
+
     expect(createBattleMock).toHaveBeenCalledTimes(1);
     expect(createBattleMock.mock.calls[0][0]).toEqual(expectedInput());
     expect(updateBattleMock).not.toHaveBeenCalled();
+    expect(encryptDmRecovery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        battleId: defaultState.battleId,
+        dmRecoveryKey: 'private-key',
+      }),
+      'private-key',
+      defaultState.battleId,
+    );
   });
 
-  it('updates an existing battle with a 24 hour TTL', () => {
+  it('updates an existing battle with the encrypted DM snapshot', async () => {
     const state = { ...defaultState, battleCreated: true };
     const newState = share(state, createBattleMock, updateBattleMock);
 
-    expect(newState).toEqual(state);
+    expect(newState).toEqual({
+      ...state,
+      dmRecoveryKey: 'private-key',
+    });
+
+    await waitForPendingShares();
+
     expect(updateBattleMock).toHaveBeenCalledTimes(1);
     expect(updateBattleMock.mock.calls[0][0]).toEqual(expectedInput());
     expect(createBattleMock).not.toHaveBeenCalled();
   });
 
-  it('does nothing if share is disabled', () => {
+  it('does nothing if share is disabled', async () => {
     const state = { ...defaultState, shareEnabled: false };
     const newState = share(state, createBattleMock, updateBattleMock);
 
     expect(newState).toEqual(state);
+    await waitForPendingShares();
+
     expect(createBattleMock).not.toHaveBeenCalled();
     expect(updateBattleMock).not.toHaveBeenCalled();
+    expect(createDmRecoveryKey).not.toHaveBeenCalled();
   });
 
-  it('creates a battle ID if one is not defined', () => {
+  it('creates a battle ID if one is not defined', async () => {
     nanoid.mockReturnValue('new-id');
 
     const state = { ...defaultState, battleId: undefined };
@@ -108,13 +150,46 @@ describe('share', () => {
       ...defaultState,
       battleCreated: true,
       battleId: 'new-id',
+      dmRecoveryKey: 'private-key',
       sharedTimestamp: timestamp,
     };
 
     expect(newState).toEqual(expectedState);
+
+    await waitForPendingShares();
+
     expect(createBattleMock).toHaveBeenCalledTimes(1);
     expect(createBattleMock.mock.calls[0][0]).toEqual(expectedInput('new-id'));
     expect(updateBattleMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps an existing DM recovery key', async () => {
+    const state = {
+      ...defaultState,
+      battleCreated: true,
+      dmRecoveryKey: 'existing-private-key',
+    };
+
+    const newState = share(state, createBattleMock, updateBattleMock);
+    await waitForPendingShares();
+
+    expect(newState.dmRecoveryKey).toBe('existing-private-key');
+    expect(createDmRecoveryKey).not.toHaveBeenCalled();
+    expect(encryptDmRecovery).toHaveBeenCalledWith(
+      state,
+      'existing-private-key',
+      state.battleId,
+    );
+  });
+
+  it('keeps player sharing working if encrypting the DM snapshot fails', async () => {
+    encryptDmRecovery.mockRejectedValue(new Error('crypto failed'));
+
+    share(defaultState, createBattleMock, updateBattleMock);
+    await waitForPendingShares();
+
+    expect(createBattleMock).toHaveBeenCalledTimes(1);
+    expect(createBattleMock.mock.calls[0][0]).toEqual(expectedInput(undefined, undefined));
   });
 });
 

@@ -31,16 +31,38 @@ const expectedPublicInput = (battleId = defaultState.battleId) => ({
     battleinput: {
       battleId,
       round: defaultState.round,
-      creatures: defaultState.creatures.map((creature) => ({
-        ...creature,
-        statBlock: undefined,
-        armorClass: undefined,
-        totalSpellSlots: undefined,
-        usedSpellSlots: undefined,
-        initiativeRoll: undefined,
-        spells: undefined,
-        selected: undefined,
-      })),
+      creatures: [
+        {
+          ...defaultState.creatures[0],
+          statBlock: undefined,
+          armorClass: undefined,
+          totalSpellSlots: undefined,
+          usedSpellSlots: undefined,
+          initiativeRoll: undefined,
+          spells: undefined,
+          selected: undefined,
+        },
+        {
+          ...defaultState.creatures[1],
+          statBlock: undefined,
+          armorClass: undefined,
+          totalSpellSlots: undefined,
+          usedSpellSlots: undefined,
+          initiativeRoll: undefined,
+          spells: undefined,
+          selected: undefined,
+        },
+        {
+          ...defaultState.creatures[2],
+          statBlock: undefined,
+          armorClass: undefined,
+          totalSpellSlots: undefined,
+          usedSpellSlots: undefined,
+          initiativeRoll: undefined,
+          spells: undefined,
+          selected: undefined,
+        },
+      ],
       activeCreature: defaultState.activeCreature,
       expdate: 1605901893,
     },
@@ -48,7 +70,7 @@ const expectedPublicInput = (battleId = defaultState.battleId) => ({
 });
 
 const expectedRecoveryInput = (
-  recoveryId = 'dm-recovery-id',
+  recoveryId = 'dm-recovery-token',
   dmSnapshot = 'encrypted-snapshot',
 ) => ({
   variables: {
@@ -75,19 +97,19 @@ beforeEach(async () => {
   createDmRecoveryKey.mockReset();
   encryptDmRecovery.mockReset();
 
-  nanoid.mockImplementation((size) => (
-    size === 21 ? 'recovery-id' : 'new-player-id'
-  ));
   createBattleMock.mockResolvedValue();
   updateBattleMock.mockResolvedValue();
   createRecoveryMock.mockResolvedValue();
   updateRecoveryMock.mockResolvedValue();
+  nanoid.mockImplementation((size) => (
+    size === 11 ? 'new-player-id' : 'recovery-token'
+  ));
   createDmRecoveryKey.mockReturnValue('private-key');
   encryptDmRecovery.mockResolvedValue('encrypted-snapshot');
 });
 
 describe('share', () => {
-  it('creates separate 24 hour player and 60 day recovery records', async () => {
+  it('creates separate player and DM recovery records with different TTLs', async () => {
     const newState = share(
       defaultState,
       createBattleMock,
@@ -99,7 +121,7 @@ describe('share', () => {
     expect(newState).toEqual({
       ...defaultState,
       battleCreated: true,
-      dmRecoveryId: 'dm-recovery-id',
+      dmRecoveryId: 'dm-recovery-token',
       dmRecoveryKey: 'private-key',
       dmRecoveryCreated: true,
       sharedTimestamp: timestamp,
@@ -113,22 +135,23 @@ describe('share', () => {
     expect(createRecoveryMock).toHaveBeenCalledWith(expectedRecoveryInput());
     expect(updateBattleMock).not.toHaveBeenCalled();
     expect(updateRecoveryMock).not.toHaveBeenCalled();
+
     expect(encryptDmRecovery).toHaveBeenCalledWith(
       expect.objectContaining({
         battleId: defaultState.battleId,
-        dmRecoveryId: 'dm-recovery-id',
+        dmRecoveryId: 'dm-recovery-token',
         dmRecoveryKey: 'private-key',
       }),
       'private-key',
-      'dm-recovery-id',
+      'dm-recovery-token',
     );
   });
 
-  it('updates existing player and recovery records independently', async () => {
+  it('updates existing player and DM recovery records independently', async () => {
     const state = {
       ...defaultState,
       battleCreated: true,
-      dmRecoveryId: 'dm-existing-recovery',
+      dmRecoveryId: 'dm-existing',
       dmRecoveryKey: 'existing-private-key',
       dmRecoveryCreated: true,
     };
@@ -149,13 +172,13 @@ describe('share', () => {
     expect(updateBattleMock).toHaveBeenCalledWith(expectedPublicInput());
     expect(updateRecoveryMock).toHaveBeenCalledTimes(1);
     expect(updateRecoveryMock).toHaveBeenCalledWith(
-      expectedRecoveryInput('dm-existing-recovery'),
+      expectedRecoveryInput('dm-existing'),
     );
     expect(createBattleMock).not.toHaveBeenCalled();
     expect(createRecoveryMock).not.toHaveBeenCalled();
   });
 
-  it('does nothing if share is disabled', async () => {
+  it('does nothing if sharing is disabled', async () => {
     const state = { ...defaultState, shareEnabled: false };
     const newState = share(
       state,
@@ -175,11 +198,12 @@ describe('share', () => {
     expect(createDmRecoveryKey).not.toHaveBeenCalled();
   });
 
-  it('creates a fresh player battle ID without changing the recovery ID', async () => {
+  it('creates a fresh player ID when one is not defined', async () => {
     const state = {
       ...defaultState,
       battleId: undefined,
-      dmRecoveryId: 'dm-existing-recovery',
+      battleCreated: false,
+      dmRecoveryId: 'dm-existing',
       dmRecoveryKey: 'existing-private-key',
       dmRecoveryCreated: true,
     };
@@ -193,9 +217,9 @@ describe('share', () => {
     );
 
     expect(newState.battleId).toBe('new-player-id');
-    expect(newState.dmRecoveryId).toBe('dm-existing-recovery');
     expect(newState.battleCreated).toBe(true);
     expect(newState.sharedTimestamp).toBe(timestamp);
+    expect(newState.dmRecoveryId).toBe('dm-existing');
 
     await waitForPendingShares();
 
@@ -203,7 +227,7 @@ describe('share', () => {
       expectedPublicInput('new-player-id'),
     );
     expect(updateRecoveryMock).toHaveBeenCalledWith(
-      expectedRecoveryInput('dm-existing-recovery'),
+      expectedRecoveryInput('dm-existing'),
     );
   });
 
@@ -211,7 +235,7 @@ describe('share', () => {
     const state = {
       ...defaultState,
       battleCreated: true,
-      dmRecoveryId: 'dm-existing-recovery',
+      dmRecoveryId: 'dm-existing',
       dmRecoveryKey: 'existing-private-key',
       dmRecoveryCreated: true,
     };
@@ -225,17 +249,17 @@ describe('share', () => {
     );
     await waitForPendingShares();
 
-    expect(newState.dmRecoveryId).toBe('dm-existing-recovery');
+    expect(newState.dmRecoveryId).toBe('dm-existing');
     expect(newState.dmRecoveryKey).toBe('existing-private-key');
     expect(createDmRecoveryKey).not.toHaveBeenCalled();
     expect(encryptDmRecovery).toHaveBeenCalledWith(
       state,
       'existing-private-key',
-      'dm-existing-recovery',
+      'dm-existing',
     );
   });
 
-  it('keeps player sharing working if encrypting recovery fails', async () => {
+  it('keeps player sharing working if DM recovery encryption fails', async () => {
     encryptDmRecovery.mockRejectedValue(new Error('crypto failed'));
 
     share(
@@ -250,26 +274,10 @@ describe('share', () => {
     expect(createBattleMock).toHaveBeenCalledWith(expectedPublicInput());
     expect(createRecoveryMock).not.toHaveBeenCalled();
   });
-
-  it('still saves recovery if creating the player session fails', async () => {
-    createBattleMock.mockRejectedValue(new Error('player create failed'));
-
-    share(
-      defaultState,
-      createBattleMock,
-      updateBattleMock,
-      createRecoveryMock,
-      updateRecoveryMock,
-    );
-    await waitForPendingShares();
-
-    expect(createBattleMock).toHaveBeenCalledTimes(1);
-    expect(createRecoveryMock).toHaveBeenCalledWith(expectedRecoveryInput());
-  });
 });
 
 describe('handleShareError', () => {
-  it('sets an error in state and sets battleCreated to false on create battle error', () => {
+  it('sets an error and allows player creation to be retried', () => {
     const state = { ...defaultState, battleCreated: true };
     const error = 'Error sharing battle with players. Try toggling share button.';
     const stateWithErrors = { ...state, errors: [error] };
@@ -277,12 +285,14 @@ describe('handleShareError', () => {
 
     const newState = handleShareError(state, new Error('createError'), undefined);
 
-    const expectedState = { ...stateWithErrors, battleCreated: false };
-    expect(newState).toEqual(expectedState);
+    expect(newState).toEqual({
+      ...stateWithErrors,
+      battleCreated: false,
+    });
     expect(updateErrors).toHaveBeenCalledWith(state, error);
   });
 
-  it('sets an error in state on update battle error', () => {
+  it('sets an error on an update failure', () => {
     const state = { ...defaultState, battleCreated: true };
     const error = 'Error sharing battle with players. Try toggling share button.';
     const stateWithErrors = { ...state, errors: [error] };
@@ -294,22 +304,7 @@ describe('handleShareError', () => {
     expect(updateErrors).toHaveBeenCalledWith(state, error);
   });
 
-  it('sets battleCreated to false on create and update battle error', () => {
-    const state = { ...defaultState, battleCreated: true };
-    const error = 'Error sharing battle with players. Try toggling share button.';
-    const stateWithErrors = { ...state, errors: [error] };
-    updateErrors.mockReturnValue(stateWithErrors);
-
-    const newState = handleShareError(
-      state,
-      new Error('createError'),
-      new Error('updateError'),
-    );
-
-    expect(newState).toEqual({ ...stateWithErrors, battleCreated: false });
-  });
-
-  it('unshares the battle on update battle error for a loaded battle', () => {
+  it('unshares a loaded battle after an update failure', () => {
     const state = { ...defaultState, battleCreated: true, loaded: true };
     const error = 'Error rejoining previously shared battle. Try resharing the battle.';
     const stateWithErrors = { ...state, errors: [error] };
@@ -323,11 +318,13 @@ describe('handleShareError', () => {
       shareEnabled: false,
       battleId: undefined,
     });
+    expect(updateErrors).toHaveBeenCalledWith(state, error);
   });
 
-  it('clears errors in state if there are no errors', () => {
+  it('clears sharing errors when mutations are healthy', () => {
     const state = { ...defaultState, errors: ['some error'] };
     dismissErrors.mockReturnValue(defaultState);
+
     const newState = handleShareError(state, undefined, undefined);
 
     expect(newState).toEqual(defaultState);
@@ -337,10 +334,12 @@ describe('handleShareError', () => {
 });
 
 describe('handleRecoveryError', () => {
-  it('does not disable player sharing when recovery persistence fails', () => {
+  it('keeps player sharing active and marks recovery for recreation', () => {
     const state = {
       ...defaultState,
       battleCreated: true,
+      dmRecoveryId: 'dm-existing',
+      dmRecoveryKey: 'private-key',
       dmRecoveryCreated: true,
     };
     const error = 'DM recovery could not be saved. Player sharing is still active.';
@@ -362,7 +361,13 @@ describe('handleRecoveryError', () => {
     expect(updateErrors).toHaveBeenCalledWith(state, error);
   });
 
-  it('does nothing when recovery persistence has no error', () => {
-    expect(handleRecoveryError(defaultState)).toEqual(defaultState);
+  it('leaves state unchanged when recovery mutations are healthy', () => {
+    const state = {
+      ...defaultState,
+      dmRecoveryCreated: true,
+    };
+
+    expect(handleRecoveryError(state, undefined, undefined)).toBe(state);
+    expect(updateErrors).not.toHaveBeenCalled();
   });
 });

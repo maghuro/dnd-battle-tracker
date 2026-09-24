@@ -22,21 +22,30 @@ describe('save', () => {
     expect(calls.length).toBe(1);
     const fileContents = JSON.parse(calls[0][2]);
     const {
-      ariaAnnouncements, errors, ...expectedFileContents
+      ariaAnnouncements,
+      errors,
+      dmRecoveryId,
+      dmRecoveryKey,
+      dmRecoveryCreated,
+      ...expectedFileContents
     } = defaultState;
     expect(fileContents).toEqual(expectedFileContents);
   });
 
-  it('does not include the DM recovery key in a manual save', () => {
+  it('does not include private DM recovery data in a manual save', () => {
     save({
       ...defaultState,
+      dmRecoveryId: 'dm-recovery-id',
       dmRecoveryKey: 'private-key',
+      dmRecoveryCreated: true,
     });
 
     const { calls } = FileSystem.save.mock;
     const fileContents = JSON.parse(calls[0][2]);
 
+    expect(fileContents).not.toHaveProperty('dmRecoveryId');
     expect(fileContents).not.toHaveProperty('dmRecoveryKey');
+    expect(fileContents).not.toHaveProperty('dmRecoveryCreated');
   });
 
   it('saves the file in JSON format', () => {
@@ -109,21 +118,28 @@ describe('load', () => {
     expect(loadedFileContents).toEqual(expectedFileContents);
   });
 
-  it('keeps the current DM recovery key when a manual file does not contain it', async () => {
+  it('keeps current private recovery data when a manual file does not contain it', async () => {
     const {
       ariaAnnouncements,
+      dmRecoveryId,
+      dmRecoveryKey,
+      dmRecoveryCreated,
       ...fileContents
     } = defaultState;
     FileSystem.load.mockResolvedValue(JSON.stringify(fileContents));
 
     const state = {
       ...defaultState,
+      dmRecoveryId: 'dm-recovery-id',
       dmRecoveryKey: 'private-key',
+      dmRecoveryCreated: true,
     };
 
     const loadedFileContents = await load(state, file);
 
+    expect(loadedFileContents.dmRecoveryId).toBe('dm-recovery-id');
     expect(loadedFileContents.dmRecoveryKey).toBe('private-key');
+    expect(loadedFileContents.dmRecoveryCreated).toBe(true);
   });
 
   it('resets errors on load', async () => {
@@ -270,7 +286,9 @@ describe('autoLoad', () => {
       battleId: '123',
       battleCreated: true,
       shareEnabled: true,
+      dmRecoveryId: 'dm-recovery-id',
       dmRecoveryKey: 'private-key',
+      dmRecoveryCreated: true,
     };
     getLocalState.mockReturnValue(JSON.stringify(loadedSate));
 
@@ -289,7 +307,9 @@ describe('autoLoad', () => {
       battleCreated: false,
       shareEnabled: false,
       sharedTimestamp: null,
-      dmRecoveryKey: undefined,
+      dmRecoveryId: 'dm-recovery-id',
+      dmRecoveryKey: 'private-key',
+      dmRecoveryCreated: true,
       loaded: true,
       ariaAnnouncements: ['battle loaded'],
     };

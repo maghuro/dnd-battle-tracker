@@ -1,5 +1,3 @@
-import { webcrypto } from 'crypto';
-import { TextDecoder, TextEncoder } from 'util';
 import defaultState from '../../test/fixtures/battle';
 import {
   buildDmRecoveryUrl,
@@ -9,15 +7,6 @@ import {
   getDmRecoveryFromLocation,
   restoreDmRecovery,
 } from './DmRecoveryManager';
-
-beforeAll(() => {
-  Object.defineProperty(window, 'crypto', {
-    configurable: true,
-    value: webcrypto,
-  });
-  global.TextEncoder = TextEncoder;
-  global.TextDecoder = TextDecoder;
-});
 
 describe('DM recovery encryption', () => {
   it('round trips private battle state without transient or sharing metadata', async () => {

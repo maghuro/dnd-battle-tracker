@@ -97,7 +97,7 @@ function DungeonMasterApp({
     setState((prevState) => {
       const newState = update(prevState, ...args);
       if (doShare) return shareBattle(newState);
-      if (doRecovery) return shareRecovery(newState);
+      if (doRecovery && shareRecovery) return shareRecovery(newState);
       return newState;
     });
   };

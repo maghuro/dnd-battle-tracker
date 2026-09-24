@@ -29,7 +29,7 @@ describe('DM recovery', () => {
 
     msw.use(
       graphql.query('GET_DM_RECOVERY', ({ variables }) => {
-        expect(variables.battleId).toBe(recoveryId);
+        expect(variables.recoveryId).toBe(recoveryId);
         return HttpResponse.json({
           data: {
             getDndbattletracker: {

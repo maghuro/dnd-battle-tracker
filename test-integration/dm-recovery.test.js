@@ -13,6 +13,7 @@ describe('DM recovery', () => {
   test('recovers the complete private DM state from another browser session', async () => {
     const battleId = 'recovery-battle-id';
     const key = createDmRecoveryKey();
+    expect(key).toBeDefined();
     const state = {
       ...defaultState,
       battleId,
@@ -56,6 +57,7 @@ describe('DM recovery', () => {
   test('can leave online mode after recovering a battle', async () => {
     const battleId = 'recovery-battle-id';
     const key = createDmRecoveryKey();
+    expect(key).toBeDefined();
     const dmSnapshot = await encryptDmRecovery({
       ...defaultState,
       battleId,

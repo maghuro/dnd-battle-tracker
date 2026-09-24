@@ -83,7 +83,7 @@ describe('DM recovery encryption', () => {
 
     await expect(
       decryptDmRecovery(encrypted, key, 'battle-1'),
-    ).rejects.toThrow('Incompatible DM recovery snapshot');
+    ).rejects.toThrow('Invalid or incompatible DM recovery snapshot');
   });
 });
 

@@ -26,7 +26,14 @@ function renderDialog(overrides = {}) {
     ...overrides,
   };
 
-  render(<RecentBattlesDialog {...props} />);
+  render(
+    <RecentBattlesDialog
+      show={props.show}
+      battles={props.battles}
+      onClose={props.onClose}
+      onRestore={props.onRestore}
+    />,
+  );
   return props;
 }
 

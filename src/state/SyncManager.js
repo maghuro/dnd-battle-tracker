@@ -6,6 +6,10 @@ import {
   encryptDmRecovery,
 } from './DmRecoveryManager';
 
+const PLAYER_TTL_SECONDS = 24 * 60 * 60;
+const DM_RECOVERY_TTL_SECONDS = 60 * 24 * 60 * 60;
+const DM_RECOVERY_ID_SIZE = 21;
+
 let shareQueue = Promise.resolve();
 
 function getSharedCreatures(creatures) {
@@ -21,30 +25,69 @@ function getSharedCreatures(creatures) {
   }));
 }
 
-function queueShare(state, mutation, input) {
-  const run = async () => {
-    let dmSnapshot;
+function publicBattleInput(state, battleId, timestamp) {
+  return {
+    variables: {
+      battleinput: {
+        battleId,
+        round: state.round,
+        creatures: getSharedCreatures(state.creatures),
+        activeCreature: state.activeCreature,
+        expdate: Math.floor(timestamp / 1000.0) + PLAYER_TTL_SECONDS,
+      },
+    },
+  };
+}
 
-    if (state.dmRecoveryKey) {
-      try {
-        dmSnapshot = await encryptDmRecovery(
-          state,
-          state.dmRecoveryKey,
-          state.battleId,
-        );
-      } catch {
-        dmSnapshot = undefined;
-      }
+function recoveryBattleInput(recoveryId, dmSnapshot, timestamp) {
+  return {
+    variables: {
+      battleinput: {
+        battleId: recoveryId,
+        round: 0,
+        creatures: [],
+        activeCreature: null,
+        dmSnapshot,
+        expdate: Math.floor(timestamp / 1000.0) + DM_RECOVERY_TTL_SECONDS,
+      },
+    },
+  };
+}
+
+function queueShare(
+  state,
+  publicMutation,
+  publicInput,
+  recoveryMutation,
+  timestamp,
+) {
+  const run = async () => {
+    try {
+      await publicMutation(publicInput);
+    } catch {
+      // Public sharing errors are surfaced by the Apollo mutation state.
     }
 
-    await mutation({
-      variables: {
-        battleinput: {
-          ...input.variables.battleinput,
-          ...(dmSnapshot ? { dmSnapshot } : {}),
-        },
-      },
-    });
+    if (!state.dmRecoveryKey || !state.dmRecoveryId || !recoveryMutation) return;
+
+    let dmSnapshot;
+    try {
+      dmSnapshot = await encryptDmRecovery(
+        state,
+        state.dmRecoveryKey,
+        state.dmRecoveryId,
+      );
+    } catch {
+      return;
+    }
+
+    try {
+      await recoveryMutation(
+        recoveryBattleInput(state.dmRecoveryId, dmSnapshot, timestamp),
+      );
+    } catch {
+      // Recovery errors are surfaced separately without disabling player sharing.
+    }
   };
 
   shareQueue = shareQueue.then(run, run).catch(() => undefined);
@@ -54,7 +97,13 @@ export function waitForPendingShares() {
   return shareQueue;
 }
 
-export function share(state, createBattle, updateBattle) {
+export function share(
+  state,
+  createBattle,
+  updateBattle,
+  createRecovery = createBattle,
+  updateRecovery = updateBattle,
+) {
   if (!state.shareEnabled) {
     return state;
   }
@@ -62,38 +111,35 @@ export function share(state, createBattle, updateBattle) {
   const battleId = state.battleId || nanoid(11);
   const timestamp = now();
   const dmRecoveryKey = state.dmRecoveryKey || createDmRecoveryKey();
+  const dmRecoveryId = dmRecoveryKey
+    ? (state.dmRecoveryId || `dm-${nanoid(DM_RECOVERY_ID_SIZE)}`)
+    : undefined;
 
   const sharedState = {
     ...state,
     battleId,
+    dmRecoveryId,
     dmRecoveryKey,
   };
 
-  const input = {
-    variables: {
-      battleinput: {
-        battleId,
-        round: state.round,
-        creatures: getSharedCreatures(state.creatures),
-        activeCreature: state.activeCreature,
-        expdate: Math.floor(timestamp / 1000.0) + 86400,
-      },
-    },
-  };
+  const publicMutation = state.battleCreated ? updateBattle : createBattle;
+  const recoveryMutation = dmRecoveryId
+    ? (state.dmRecoveryCreated ? updateRecovery : createRecovery)
+    : undefined;
 
-  const { battleCreated } = state;
-
-  if (battleCreated) {
-    queueShare(sharedState, updateBattle, input);
-    return sharedState;
-  }
-
-  queueShare(sharedState, createBattle, input);
+  queueShare(
+    sharedState,
+    publicMutation,
+    publicBattleInput(state, battleId, timestamp),
+    recoveryMutation,
+    timestamp,
+  );
 
   return {
     ...sharedState,
     battleCreated: true,
-    sharedTimestamp: timestamp,
+    dmRecoveryCreated: Boolean(dmRecoveryId),
+    ...(!state.battleCreated ? { sharedTimestamp: timestamp } : {}),
   };
 }
 
@@ -117,4 +163,14 @@ export function handleShareError(state, createError, updateError) {
   }
 
   return stateWithErrors;
+}
+
+export function handleRecoveryError(state, createError, updateError) {
+  if (!createError && !updateError) return state;
+
+  const error = 'DM recovery could not be saved. Player sharing is still active.';
+  return {
+    ...updateErrors(state, error),
+    dmRecoveryCreated: false,
+  };
 }

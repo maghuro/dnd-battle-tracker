@@ -39,6 +39,15 @@ query GET_BATTLE($battleId: String!) {
 }
 `;
 
+export const GET_DM_RECOVERY = gql`
+query GET_DM_RECOVERY($battleId: String!) {
+  getDndbattletracker(battleId: $battleId) {
+    battleId
+    dmSnapshot
+  }
+}
+`;
+
 export const SYNC_BATTLE = gql`
 subscription SYNC_BATTLE($battleId: String!) {
   onUpdateDndbattletracker(battleId: $battleId) ${Battle}

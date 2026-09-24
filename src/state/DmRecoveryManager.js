@@ -27,12 +27,19 @@ function base64UrlToBytes(value) {
 }
 
 function versionsAreCompatible(recoveredVersion) {
-  if (!recoveredVersion) return false;
+  if (typeof recoveredVersion !== 'string') return false;
 
   const currentMajorVersion = packageJson.version.split('.')[0];
   const recoveredMajorVersion = recoveredVersion.split('.')[0];
 
   return currentMajorVersion === recoveredMajorVersion;
+}
+
+function validRecoveredState(state) {
+  return state
+    && typeof state === 'object'
+    && Array.isArray(state.creatures)
+    && versionsAreCompatible(state.battleTrackerVersion);
 }
 
 function getSnapshotState(state) {
@@ -143,8 +150,8 @@ export async function decryptDmRecovery(snapshot, key, battleId) {
   );
 
   const state = JSON.parse(new TextDecoder().decode(decrypted));
-  if (!versionsAreCompatible(state.battleTrackerVersion)) {
-    throw new Error('Incompatible DM recovery snapshot');
+  if (!validRecoveredState(state)) {
+    throw new Error('Invalid or incompatible DM recovery snapshot');
   }
 
   return state;

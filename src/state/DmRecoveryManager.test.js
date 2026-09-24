@@ -88,12 +88,12 @@ describe('DM recovery links', () => {
       'https://example.com/?feature=true&battle=player-id#old',
     );
 
-    expect(url).toBe('https://example.com/?feature=true#dm=battle-1&key=private-key');
+    expect(url).toBe('https://example.com/?feature=true#dm=dm-recovery-1&key=private-key');
   });
 
   it('reads a valid recovery link from a location hash', () => {
     const recovery = getDmRecoveryFromLocation({
-      hash: '#dm=battle-1&key=private-key',
+      hash: '#dm=dm-recovery-1&key=private-key',
     });
 
     expect(recovery).toEqual({
@@ -103,13 +103,13 @@ describe('DM recovery links', () => {
   });
 
   it('ignores incomplete recovery links', () => {
-    expect(getDmRecoveryFromLocation({ hash: '#dm=battle-1' })).toBeUndefined();
+    expect(getDmRecoveryFromLocation({ hash: '#dm=dm-recovery-1' })).toBeUndefined();
     expect(getDmRecoveryFromLocation({ hash: '#key=private-key' })).toBeUndefined();
   });
 });
 
 describe('restoreDmRecovery', () => {
-  it('restores the private state into the active shared session', () => {
+  it('restores private state ready for a fresh player session', () => {
     const recoveredState = {
       ...defaultState,
       shareEnabled: undefined,

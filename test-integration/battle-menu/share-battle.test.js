@@ -51,7 +51,9 @@ describe('Battle Share', () => {
     await waitFor(() => {
       const savedState = JSON.parse(window.localStorage.getItem('battle'));
       expect(savedState.dmRecoveryId).toMatch(/^dm-[A-Za-z0-9_-]{21}$/);
+      expect(savedState.dmRecoveryId).toBe('dm-random-battle-id');
       expect(savedState.dmRecoveryKey).toBeDefined();
+      expect(savedState.dmRecoveryCreated).toBe(true);
       expect(savedState.dmRecoveryCreated).toBe(true);
     });
 

@@ -37,8 +37,8 @@ It was clear that some automation would be helpful. There's a number of browser-
 * [Shieldmaiden](https://shieldmaiden.app/) (Previously Harmless Key)
 * [Improved Initiative](https://improvedinitiative.app/)
 * [Kassoon](https://www.kassoon.com/dnd/combat-tracker/)
-* [Orc Pub](https://www.orcpub2.com/) ([replaced by Dungeon Master's Vault](https://www.dungeonmastersvault.com/help/faq-about-orcpub-and-dungeonmastersvault/) though seemingly without a combat tracker)
-* Full VTTs like [Roll20](https://app.roll20.net/sessions/new), [Fantasy Grounds](https://www.fantasygrounds.com/), [Owlbear Rodeo](https://www.owlbear.rodeo/), [Foundry](https://foundryvtt.com/), [Forge](https://forge-vtt.com/)
+* Orc Pub, [replaced by Dungeon Master's Vault](https://www.dungeonmastersvault.com/help/faq-about-orcpub-and-dungeonmastersvault/) (though seemingly without a combat tracker)
+* Full VTTs like [D&D Beyond Maps](https://www.dndbeyond.com/games), [Roll20](https://app.roll20.net/sessions/new), [Fantasy Grounds](https://www.fantasygrounds.com/), [Owlbear Rodeo](https://www.owlbear.rodeo/), [Foundry](https://foundryvtt.com/), [Forge](https://forge-vtt.com/)
 * [HeroMuster](https://encounters.heromuster.com/)
 * [5e Tools](https://5e.tools/dmscreen.html) (click the add button then go to Special and add the Initiative Tracker. Player view also available)
 * [DM Tools](https://dm.tools/tracker)
@@ -48,6 +48,7 @@ It was clear that some automation would be helpful. There's a number of browser-
 * [DnD Combat Tracker](https://dnd.achim-strauss.net/)
 * [Monstrous Initiative Tracker](https://brewchetta.github.io/monstrous-initiative-tracker/)
 * [Warforged 5e](https://warforged5e.com/)
+* [Table Mimic](https://tablemimic.com/initiative/)
 
 Many of these systems are very feature rich and aim to provide tools beyond the combat tracker itself, which is great. However that does mean that they come with a learning curve and several are gated-off behind login screens.
 
